@@ -26,9 +26,63 @@ class DescribeStencilFilter extends \PHPSpec\Context
 
     public function itShouldConvertARowOfDotsIntoARowOfZeroes()
     {
-        $this->stencilFilter->setInput('..');
+        $this->stencilFilter->setInput('....');
         $this->stencilFilter->runRowFilter();
-        $this->stencilFilter->getOutput()->should->equal('00');
+        $this->stencilFilter->getOutput()->should->equal('0000');
+    }
+
+    public function itShouldConvertAMixedRowIntoMixedZeroesAndStars()
+    {
+        $this->stencilFilter->setInput('.*.*');
+        $this->stencilFilter->runRowFilter();
+        $this->stencilFilter->getOutput()->should->equal('0*0*');
+    }
+
+    public function itShouldConvertARowOfStarsIntoARowOfStars()
+    {
+        $this->stencilFilter->setInput('****');
+        $this->stencilFilter->runRowFilter();
+        $this->stencilFilter->getOutput()->should->equal('****');
+    }
+
+    public function itShouldConvertAGridofStarsIntoAGridOfStars() {
+        $this->stencilFilter->setInput(
+            array(
+                '1' => '****',
+                '2' => '****',
+                '3' => '****',
+                '4' => '****'
+            )
+        );
+        $this->stencilFilter->runGridFilter();
+        $this->stencilFilter->getOutput()->should->equal(
+            array(
+                '1' => '****',
+                '2' => '****',
+                '3' => '****',
+                '4' => '****'
+            )
+        );
+    }
+
+    public function itShouldConvertAMixedMatrixIntoAMixedMatrix() {
+        $this->stencilFilter->setInput(
+            array(
+                '1' => '*..*',
+                '2' => '..**',
+                '3' => '**..',
+                '4' => '...*'
+            )
+        );
+        $this->stencilFilter->runGridFilter();
+        $this->stencilFilter->getOutput()->should->equal(
+            array(
+                '1' => '*00*',
+                '2' => '00**',
+                '3' => '**00',
+                '4' => '000*'
+            )
+        );
     }
 }
 
@@ -38,35 +92,41 @@ class stencilFilter
     protected $stencilRowIn = null;
     protected $stencilGridIn = null;
 
-    //public $filterCell = null;
-    //public $filterRow = null;
-    //public $filterGrid = null;
+    public $filterCell = null;
+    public $filterRow = null;
+    public $filterRowWrapped = null;
+    public $filterGrid = null;
 
     protected $stencilProcessed = null;
 
     public function __construct() {
-        //$self = $this;
-        //$this->filterCell = function($value) use ($self) { return ($value == '.') ? '0':'*'; };
-        //$this->filterRow = function($row) use ($self) { return array_map($self->filterCell, $row); };
-        //$this->filterGrid = function($grid) use ($self){ return array_map($self->filterRow, $grid); };
+        $self = $this;
+        $this->filterCell = function($value) use ($self) { return ($value == '.') ? '0':'*'; };
+        $this->filterRow = function($row) use ($self) { return array_map($self->filterCell, $row); };
+        $self->filterRowWrapped = function($row) use ($self) { return implode(array_map($self->filterCell, $row)); };
+        $this->filterGrid = function($grid) use ($self){ return array_map($self->filterRowWrapped, $grid); };
     }
 
     public function setInput($str) {
-        $this->stencilCellIn = $str;
-        $this->stencilRowIn = str_split($str);
-        $this->stencilGridIn = $str;
+        if(is_array($str)) {
+            $this->stencilGridIn = array_map('str_split', $str);
+        } elseif(strlen($str) > 1) {
+            $this->stencilRowIn = str_split($str);
+        } else {
+            $this->stencilCellIn = $str;
+        }
     }
 
     public function runCellFilter() {
-        $this->stencilProcessed = $this->filterCell($this->getStencilCellIn());
+        $this->stencilProcessed = call_user_func($this->filterCell, $this->getStencilCellIn());
     }
 
     public function runRowFilter() {
-        $this->stencilProcessed = implode($this->filterRow($this->getStencilRowIn()));
+        $this->stencilProcessed = implode(call_user_func($this->filterRow, $this->getStencilRowIn()));
     }
 
     public function runGridFilter() {
-        $this->stencilProcessed = $this->filterGrid($this->getStencilGridIn());
+        $this->stencilProcessed = call_user_func($this->filterGrid, $this->getStencilGridIn());
     }
 
     public function getOutput() {
@@ -89,9 +149,4 @@ class stencilFilter
         return $this->stencilProcessed;
     }
 
-    public function filterCell($value){ return ($value == '.') ? '0':'*'; }
-
-    public function filterRow($row){ return array_map(array($this, 'filterCell'), $row); }
-
-    public function filterGrid($grid){ return array_map($this->filterRow, $grid); }
 }
