@@ -85,13 +85,26 @@ class DescribeStencilFilter extends \PHPSpec\Context
         );
     }
 
-    public function itShouldCountNeighbors() {
-
+    public function itShouldChangeDotTo0WhenNoMinesNearby() {
+        $this->stencilFilter->setInput(
+            array(
+                '1' => '*..*',
+                '2' => '..**',
+                '3' => '**..',
+                '4' => '...*'
+            )
+        );
+        $this->stencilFilter->runGridFilter();
+        $this->stencilFilter->getOutput()->should->equal(
+            array(
+                '1' => '*00*',
+                '2' => '00**',
+                '3' => '**00',
+                '4' => '000*'
+            )
+        );
     }
 
-    public function itShouldUpdateCellValueWhenValueIsOne() {
-        
-    }
 }
 
 class stencilFilter

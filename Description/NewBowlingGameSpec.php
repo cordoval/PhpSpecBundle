@@ -1,7 +1,7 @@
 <?php
 namespace Cordova\Bundle\PhpSpecBundle\Description;
 
-require "Bowling.php";
+require "Bowling.php"; 
 
 class DescribeNewBowlingGame extends \PHPSpec\Context
 {
